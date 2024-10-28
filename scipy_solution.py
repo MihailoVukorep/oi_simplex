@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from scipy.optimize import linprog
 
 # Define the coefficients of the objective function
