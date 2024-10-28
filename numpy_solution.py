@@ -58,8 +58,10 @@ def simplex(c, A, b):
     solution = np.zeros(num_variables)
     for i in range(num_constraints):
         # If the row corresponds to a basic variable, extract its value
+        print(tableau[i, :num_variables], "->", np.argmax(tableau[i, :num_variables]), "<", num_variables)
         if np.argmax(tableau[i, :num_variables]) < num_variables:
             solution[np.argmax(tableau[i, :num_variables])] = tableau[i, -1]
+            print(tableau[i, -1])
 
     objective_value = tableau[-1, -1]
     return solution, objective_value
