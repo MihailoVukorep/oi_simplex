@@ -2,71 +2,59 @@
 
 import numpy as np
 
-# Define the coefficients of the objective function (maximize Z = 3x1 + 2x2)
-c = np.array([3, 2])
-
-# Define the constraint coefficients
-A = np.array([
-    [2, 1],
-    [4, 3],
-    [2, 5]
-])
-
-# Define the right-hand side of the constraints
-b = np.array([20, 42, 30])
-
 def simplex(c, A, b):
-    """
-    Solve the linear programming problem:
-    Maximize: Z = c @ x
-    Subject to: A @ x <= b, x >= 0
-    """
-    # Step 1: Set up the initial tableau
+    # 1. table setup
     num_constraints, num_variables = A.shape
+    print("A.shape", A.shape)
     tableau = np.zeros((num_constraints + 1, num_variables + num_constraints + 1))
-
-    # Fill the tableau with the constraint coefficients
     tableau[:-1, :num_variables] = A
     tableau[:-1, num_variables:num_variables + num_constraints] = np.eye(num_constraints)
     tableau[:-1, -1] = b
+    tableau[-1, :num_variables] = c
 
-    # Fill the objective function row (negated for maximization)
-    tableau[-1, :num_variables] = -c
-
-    print("Initial Tableau:")
     print(tableau)
 
-    # Step 2: Perform the pivoting process until an optimal solution is found
+    # 2. pivot process
     while True:
-        # Step 3: Check if the current solution is optimal (no positive coefficients in the objective row)
-        if np.all(tableau[-1, :-1] <= 0):
+        # 3. check if solution optimal
+        if np.all(tableau[-1, :-1] >= 0):
             print("Optimal solution found!")
             break
+        else:
+            print("not optimal yet")
 
-        # Step 4: Find the pivot column (most positive coefficient in the objective row)
-        pivot_col = np.argmax(tableau[-1, :-1])
+        # 4. find pivot column (most negative coefficient in the objective row)
+        pivot_col = np.argmin(tableau[-1, :-1])
+        print("pivot_col:", pivot_col)
 
-        # Step 5: Check for unbounded solution
+        # 5. check for unbounded solution
         if np.all(tableau[:-1, pivot_col] <= 0):
             raise ValueError("Problem is unbounded.")
 
-        # Step 6: Find the pivot row (minimum ratio test)
-        ratios = tableau[:-1, -1] / tableau[:-1, pivot_col]
-        ratios[ratios <= 0] = np.inf  # Ignore non-positive ratios
-        pivot_row = np.argmin(ratios)
+        # 6. find the pivot row (minimum ratio test)
+        ratios = tableau[:-1, -1] / tableau[:-1, pivot_col] # RHS/key clm
+        ratios[ratios <= 0] = np.inf  # ignore non-positive ratios
+        print("ratios:",ratios)
+        pivot_row = np.argmin(ratios) # get smallest positive ratio
+        print("pivot_row:",pivot_row)
 
-        # Step 7: Perform the pivot operation (normalize the pivot row)
-        tableau[pivot_row] /= tableau[pivot_row, pivot_col]
+        print("key:", tableau[pivot_row, pivot_col])
 
-        # Step 8: Update the other rows
+        # 7. normalize the pivot row
+        tableau[pivot_row] /= tableau[pivot_row, pivot_col] # / entire row with key element
+        
+        print("after norm:", tableau[pivot_row])
+
+        # 8. update the other rows
         for i in range(len(tableau)):
             if i != pivot_row:
                 tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
+                print(tableau[i], "-=", tableau[i, pivot_col], "*", tableau[pivot_row], "=", tableau[i, pivot_col] * tableau[pivot_row])
 
         print("\nTableau after pivoting:")
         print(tableau)
 
-    # Step 9: Extract the solution
+    # 9. extract the solution
     solution = np.zeros(num_variables)
     for i in range(num_constraints):
         # If the row corresponds to a basic variable, extract its value
@@ -76,7 +64,17 @@ def simplex(c, A, b):
     objective_value = tableau[-1, -1]
     return solution, objective_value
 
+# Z = 1x1 + 4x2
+c = np.array([-1, -4])
 
+A = np.array([
+    [2, 1],
+    [3, 5],
+    [1, 3]
+])
+
+# RHS
+b = np.array([3, 9, 5])
 
 # Solve the problem using the simplex method
 solution, objective_value = simplex(c, A, b)
