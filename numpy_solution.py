@@ -48,8 +48,8 @@ def simplex(c, A, b):
         # 8. update the other rows
         for i in range(len(tableau)):
             if i != pivot_row:
-                tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
                 print(tableau[i], "-=", tableau[i, pivot_col], "*", tableau[pivot_row], "=", tableau[i, pivot_col] * tableau[pivot_row])
+                tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
 
         print("\nTableau after pivoting:")
         print(tableau)
