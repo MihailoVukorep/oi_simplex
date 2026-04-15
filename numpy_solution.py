@@ -2,85 +2,90 @@
 
 import numpy as np
 
-def simplex(c, A, b):
-    # 1. table setup
+def simplex(c, A, b, problem="max"):
+    """
+    Solve LP using simplex method.
+
+    Max/Min c^T x
+    subject to Ax <= b, x >= 0
+
+    Parameters:
+        c : objective coefficients
+        A : constraint matrix
+        b : RHS
+        problem : "max" or "min"
+    """
+
     num_constraints, num_variables = A.shape
-    print("A.shape", A.shape)
+
+    # Convert minimization to maximization
+    if problem == "min":
+        c = -c
+
+    # Build tableau
     tableau = np.zeros((num_constraints + 1, num_variables + num_constraints + 1))
+
+    # Constraints
     tableau[:-1, :num_variables] = A
     tableau[:-1, num_variables:num_variables + num_constraints] = np.eye(num_constraints)
     tableau[:-1, -1] = b
-    tableau[-1, :num_variables] = c
 
-    print(tableau)
+    # Objective row (IMPORTANT: negative for max)
+    tableau[-1, :num_variables] = -c
 
-    # 2. pivot process
     while True:
-        # 3. check if solution optimal
+        # Check optimality
         if np.all(tableau[-1, :-1] >= 0):
-            print("Optimal solution found!")
             break
-        else:
-            print("not optimal yet")
 
-        # 4. find pivot column (most negative coefficient in the objective row)
+        # Pivot column (most negative value)
         pivot_col = np.argmin(tableau[-1, :-1])
-        print("pivot_col:", pivot_col)
 
-        # 5. check for unbounded solution
-        if np.all(tableau[:-1, pivot_col] <= 0):
+        # Check unboundedness
+        column = tableau[:-1, pivot_col]
+        if np.all(column <= 0):
             raise ValueError("Problem is unbounded.")
 
-        # 6. find the pivot row (minimum ratio test)
-        ratios = tableau[:-1, -1] / tableau[:-1, pivot_col] # RHS/key clm
-        ratios[ratios <= 0] = np.inf  # ignore non-positive ratios
-        print("ratios:",ratios)
-        pivot_row = np.argmin(ratios) # get smallest positive ratio
-        print("pivot_row:",pivot_row)
+        # Ratio test (FIXED)
+        ratios = np.where(column > 0, tableau[:-1, -1] / column, np.inf)
+        pivot_row = np.argmin(ratios)
 
-        print("key:", tableau[pivot_row, pivot_col])
+        # Normalize pivot row
+        tableau[pivot_row] /= tableau[pivot_row, pivot_col]
 
-        # 7. normalize the pivot row
-        tableau[pivot_row] /= tableau[pivot_row, pivot_col] # / entire row with key element
-        
-        print("after norm:", tableau[pivot_row])
-
-        # 8. update the other rows
+        # Eliminate other rows
         for i in range(len(tableau)):
             if i != pivot_row:
-                print(tableau[i], "-=", tableau[i, pivot_col], "*", tableau[pivot_row], "=", tableau[i, pivot_col] * tableau[pivot_row])
                 tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
 
-        print("\nTableau after pivoting:")
-        print(tableau)
-
-    # 9. extract the solution
+    # Extract solution
     solution = np.zeros(num_variables)
-    for i in range(num_constraints):
-        # If the row corresponds to a basic variable, extract its value
-        print(tableau[i, :num_variables], "->", np.argmax(tableau[i, :num_variables]), "<", num_variables)
-        if np.argmax(tableau[i, :num_variables]) < num_variables:
-            solution[np.argmax(tableau[i, :num_variables])] = tableau[i, -1]
-            print(tableau[i, -1])
 
+    for j in range(num_variables):
+        col = tableau[:, j]
+        if np.count_nonzero(col[:-1]) == 1 and np.isclose(col[:-1].max(), 1):
+            row = np.argmax(col[:-1])
+            solution[j] = tableau[row, -1]
+
+    # Objective value
     objective_value = tableau[-1, -1]
+
+    # If minimization, convert back
+    if problem == "min":
+        objective_value = -objective_value
+
     return solution, objective_value
 
-# Z = 1x1 + 4x2
-c = np.array([-1, -4])
+c = np.array([6, 14, 13])
 
 A = np.array([
-    [2, 1],
-    [3, 5],
-    [1, 3]
+    [0.5, 2, 1],
+    [1, 2, 4],
 ])
 
-# RHS
-b = np.array([3, 9, 5])
+b = np.array([24, 60])
 
-# Solve the problem using the simplex method
-solution, objective_value = simplex(c, A, b)
+solution, value = simplex(c, A, b, problem="max")
 
-print("\nOptimal Solution:")
-print("Values of decision variables:", solution)
-print("Maximum value of objective function:", objective_value)
+print("Solution:", solution)
+print("Max value:", value)
