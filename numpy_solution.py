@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def simplex(c, A, b, problem="max"):
+def simplex(c, A, b, isMin=False):
     """
     Solve LP using simplex method.
 
@@ -19,7 +19,7 @@ def simplex(c, A, b, problem="max"):
     num_constraints, num_variables = A.shape
 
     # Convert minimization to maximization
-    if problem == "min":
+    if isMin:
         c = -c
 
     # Build tableau
@@ -33,6 +33,9 @@ def simplex(c, A, b, problem="max"):
     # Objective row (IMPORTANT: negative for max)
     tableau[-1, :num_variables] = -c
 
+    print("tableau:")
+    print(tableau)
+
     while True:
         # Check optimality
         if np.all(tableau[-1, :-1] >= 0):
@@ -40,23 +43,39 @@ def simplex(c, A, b, problem="max"):
 
         # Pivot column (most negative value)
         pivot_col = np.argmin(tableau[-1, :-1])
+        print(f"pivot_col: {pivot_col} <- most negative in Z")
 
         # Check unboundedness
         column = tableau[:-1, pivot_col]
         if np.all(column <= 0):
             raise ValueError("Problem is unbounded.")
 
-        # Ratio test (FIXED)
+        print("column:")
+        print(column)
+
+        # Ratio test
         ratios = np.where(column > 0, tableau[:-1, -1] / column, np.inf)
+        print(f"ratios: {ratios}")
         pivot_row = np.argmin(ratios)
+        print(f"pivot_row: {pivot_row}")
 
         # Normalize pivot row
-        tableau[pivot_row] /= tableau[pivot_row, pivot_col]
+        print()
+        print(tableau)
+        pivot = tableau[pivot_row, pivot_col]
+        tableau[pivot_row] /= pivot
+        print(f"normalized pivot row with: {pivot}")
+        print(tableau)
+        print()
 
         # Eliminate other rows
         for i in range(len(tableau)):
             if i != pivot_row:
                 tableau[i] -= tableau[i, pivot_col] * tableau[pivot_row]
+
+        print("eliminated other rows")
+        print(tableau)
+        print()
 
     # Extract solution
     solution = np.zeros(num_variables)
@@ -71,21 +90,20 @@ def simplex(c, A, b, problem="max"):
     objective_value = tableau[-1, -1]
 
     # If minimization, convert back
-    if problem == "min":
+    if isMin:
         objective_value = -objective_value
 
     return solution, objective_value
 
-c = np.array([6, 14, 13])
 
+
+c = np.array([6, 14, 13])
 A = np.array([
     [0.5, 2, 1],
     [1, 2, 4],
 ])
-
 b = np.array([24, 60])
-
-solution, value = simplex(c, A, b, problem="max")
-
+solution, value = simplex(c, A, b)
 print("Solution:", solution)
 print("Max value:", value)
+
